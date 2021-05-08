@@ -1,0 +1,1 @@
+scrapy runspider .\ijra\ijra\spiders\hoghoghi.py -o hoghoghi.json

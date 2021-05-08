@@ -1,0 +1,1 @@
+scrapy runspider .\ijra\ijra\spiders\keyfari.py -o keyfari.json
