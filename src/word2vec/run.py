@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import json
 import random
 import numpy as np
 from utils.treebank import Ghazaei
@@ -21,7 +21,7 @@ labels=["keyfari","hoghoghi","all"]
 all_sent=[]
 hoghoghi_sent=[]
 keyfari_sent=[]
-df = pd.read_excel('../../data/CLEAN/CLEAN_UTF8.xlsx')
+df = pd.read_excel('../../data/CLEAN/Clean_UTF8.xlsx')
 df_sent = df['text']
 df_label = df['class']
 with open("../../data/CLEAN/CLEAN_UTF8_all.txt",'w', encoding="utf-8") as f:
@@ -79,8 +79,11 @@ for L in labels:
     wordVectors = np.concatenate(
         (wordVectors[:nWords,:], wordVectors[nWords:,:]),
         axis=0)
-    with open('../../model/word2vec/'+L+'.word2vec.npy', 'a') as f:
+    with open('../../model/word2vec/'+L+'.word2vec.npy', 'wb') as f:
         np.save(f, wordVectors)
+    a_file = open('../../model/word2vec/'+L+'.word2vec.tokens.json', "w")
+    json.dump(tokens, a_file)
+    a_file.close()
 
 # visualizeWords = [
 #     "great", "cool", "brilliant", "wonderful", "well", "amazing",

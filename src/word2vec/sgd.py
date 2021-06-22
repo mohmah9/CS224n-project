@@ -97,8 +97,8 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
                 exploss = .95 * exploss + .05 * loss
             print("iter %d: %f" % (iter, exploss))
 
-        if iter % SAVE_PARAMS_EVERY == 0 and useSaved:
-            save_params(iter, x)
+        # if iter % SAVE_PARAMS_EVERY == 0 and useSaved:
+        #     save_params(iter, x)
 
         if iter % ANNEAL_EVERY == 0:
             step *= 0.5

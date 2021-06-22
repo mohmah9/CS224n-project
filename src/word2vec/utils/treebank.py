@@ -16,8 +16,8 @@ class Ghazaei:
         self.label=label
 
     def tokens(self):
-        if hasattr(self, "_tokens") and self._tokens:
-            return self._tokens
+        # if hasattr(self, "_tokens") and self._tokens:
+        #     return self._tokens
 
         tokens = dict()
         tokenfreq = dict()
