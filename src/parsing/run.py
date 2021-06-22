@@ -146,7 +146,7 @@ if __name__ == "__main__":
     print(80 * "=")
     print("TRAINING")
     print(80 * "=")
-    output_dir = "results/{:%Y%m%d_%H%M%S}/".format(datetime.now())
+    output_dir = "../../model/parsing/"
     output_path = output_dir + "model.weights"
 
     if not os.path.exists(output_dir):

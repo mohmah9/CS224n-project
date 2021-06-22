@@ -33,9 +33,9 @@ class Config(object):
     use_dep = True
     use_dep = use_dep and (not unlabeled)
     data_path = './data'
-    train_file = 'train.conll'
-    dev_file = 'dev.conll'
-    test_file = 'test.conll'
+    train_file = 'fa_perdt-ud-train.conllu'
+    dev_file = 'fa_perdt-ud-dev.conllu'
+    test_file = 'fa_perdt-ud-test.conllu'
     embedding_file = './data/en-cw.txt'
 
 
