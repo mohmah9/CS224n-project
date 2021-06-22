@@ -18,7 +18,7 @@ Options:
     --size=<int>               vocab size [default: 50000]
     --freq-cutoff=<int>        frequency cutoff [default: 2]
 """
-
+from sklearn.model_selection import train_test_split
 from collections import Counter
 from docopt import docopt
 from itertools import chain
@@ -27,6 +27,8 @@ import torch
 from typing import List
 from utils import read_corpus, pad_sents
 import sentencepiece as spm
+import os
+import numpy as np
 
 
 class VocabEntry(object):
@@ -160,16 +162,15 @@ class VocabEntry(object):
 class Vocab(object):
     """ Vocab encapsulating src and target langauges.
     """
-    def __init__(self, src_vocab: VocabEntry, tgt_vocab: VocabEntry):
+    def __init__(self, src_vocab: VocabEntry):
         """ Init Vocab.
         @param src_vocab (VocabEntry): VocabEntry for source language
         @param tgt_vocab (VocabEntry): VocabEntry for target language
         """
         self.src = src_vocab
-        self.tgt = tgt_vocab
 
     @staticmethod
-    def build(src_sents, tgt_sents) -> 'Vocab':
+    def build(src_sents) -> 'Vocab':
         """ Build Vocabulary.
         @param src_sents (list[str]): Source subwords provided by SentencePiece
         @param tgt_sents (list[str]): Target subwords provided by SentencePiece
@@ -178,17 +179,14 @@ class Vocab(object):
         print('initialize source vocabulary ..')
         src = VocabEntry.from_subword_list(src_sents)
 
-        print('initialize target vocabulary ..')
-        tgt = VocabEntry.from_subword_list(tgt_sents)
-
-        return Vocab(src, tgt)
+        return Vocab(src)
 
     def save(self, file_path):
         """ Save Vocab to file as JSON dump.
         @param file_path (str): file path to vocab file
         """
         with open(file_path, 'w') as f:
-            json.dump(dict(src_word2id=self.src.word2id, tgt_word2id=self.tgt.word2id), f, indent=2)
+            json.dump(dict(src_word2id=self.src.word2id), f, indent=2)
 
     @staticmethod
     def load(file_path):
@@ -198,15 +196,14 @@ class Vocab(object):
         """
         entry = json.load(open(file_path, 'r'))
         src_word2id = entry['src_word2id']
-        tgt_word2id = entry['tgt_word2id']
 
-        return Vocab(VocabEntry(src_word2id), VocabEntry(tgt_word2id))
+        return Vocab(VocabEntry(src_word2id))
 
     def __repr__(self):
         """ Representation of Vocab to be used
         when printing the object.
         """
-        return 'Vocab(source %d words, target %d words)' % (len(self.src), len(self.tgt))
+        return 'Vocab(source %d words)' % (len(self.src))
 
 
 def get_vocab_list(file_path, source, vocab_size):
@@ -215,24 +212,63 @@ def get_vocab_list(file_path, source, vocab_size):
     @param source (str): tgt or src
     @param vocab_size: desired vocabulary size
     """ 
-    spm.SentencePieceTrainer.train(input=file_path, model_prefix=source, vocab_size=vocab_size)     # train the spm model
+    spm.SentencePieceTrainer.train(input=file_path, model_prefix=source, vocab_size=vocab_size,unk_id=3)     # train the spm model
     sp = spm.SentencePieceProcessor()                                                               # create an instance; this saves .model and .vocab files 
     sp.load('{}.model'.format(source))                                                              # loads tgt.model or src.model
     sp_list = [sp.id_to_piece(piece_id) for piece_id in range(sp.get_piece_size())]                 # this is the list of subwords
     return sp_list 
 
-
+def test_train_spliter():
+    t =[]
+    with open("../../data/CLEAN/CLEAN_UTF8_all.txt",'r', encoding="utf-8") as f:
+        for i in f:
+            t.append(i)
+    for time in range(1,6):
+        x_train, x_test = train_test_split(t, test_size=0.2, random_state=1000)
+        with open("./datasets/text_train_"+str(time)+".txt",'w', encoding="utf-8") as f1:
+            f1.writelines(x_train)
+        with open("./datasets/text_test_"+str(time)+".txt",'w', encoding="utf-8") as f2:
+            f2.writelines(x_test)
 
 if __name__ == '__main__':
     args = docopt(__doc__)
+    vocab_size = [20000,15000,10000,5000]
+    test_train_spliter()
+    for vs in vocab_size:
+        for i in range(1,6):
+            if not os.path.exists("./datasets/model-"+str(vocab_size)+"-"+str(i)):
+                os.mkdir("./datasets/model-"+str(vocab_size)+"-"+str(i))
+            
+            x_train_path = "./datasets/text_train_"+str(i)+".txt"
+            x_test_path = "./datasets/text_test_"+str(i)+".txt"
+            sents = get_vocab_list(x_train_path, source="./datasets/model-"+str(vocab_size)+"-"+str(i)+"/"+"model-"+str(vocab_size)+"-"+str(i), vocab_size=vs)
+            vocab = Vocab.build(sents)
+            vocab.save("./datasets/model-"+str(vocab_size)+"-"+str(i)+"/")
+            test_words=[]
+            with open("./datasets/text_test_"+str(i)+".txt",'r', encoding="utf-8") as f2:
+                for data in f2:
+                    for wd in data.split(" "):
+                        test_words.append("_"+wd)
+            test_tokens=np.array(vocab.src.words2indices(test_words))
+            unk_count = np.count_nonzero(test_tokens==3)
+            with open("../../reports/tokenization.txt",'a') as f1:
+                f1.write("With vocab size: %d  and seed: %d  and test token count of: %d  UNKNOWN precentage is: %d",vs,i,test_tokens.shape[0],unk_count/test_tokens.shape[0])
+                f1.write("/n")
+    
+    # vocab_size = 15000
+    # sents = get_vocab_list(x_train_path, source="./datasets/model-"+str(vocab_size)+"-"+str(i)+"/"+"model-"+str(vocab_size)+"-"+str(i), vocab_size=vs)
+    # vocab = Vocab.build(sents)
+    # final_vocab_file = 'models/tokenization/vocab_file_{}.json'.format(type_tokens)
+    # vocab.save(final_vocab_file)
+    
+    # print('read in source sentences: %s' % args['--train-src'])
+    # print('read in target sentences: %s' % args['--train-tgt'])
 
-    print('read in source sentences: %s' % args['--train-src'])
-    print('read in target sentences: %s' % args['--train-tgt'])
+    # src_sents = get_vocab_list(args['--train-src'], source='src', vocab_size=21000)         
+    # tgt_sents = get_vocab_list(args['--train-tgt'], source='tgt', vocab_size=8000)
+    # vocab = Vocab.build(src_sents, tgt_sents)
+    # print('generated vocabulary, source %d words, target %d words' % (len(src_sents), len(tgt_sents)))
 
-    src_sents = get_vocab_list(args['--train-src'], source='src', vocab_size=21000)         
-    tgt_sents = get_vocab_list(args['--train-tgt'], source='tgt', vocab_size=8000)
-    vocab = Vocab.build(src_sents, tgt_sents)
-    print('generated vocabulary, source %d words, target %d words' % (len(src_sents), len(tgt_sents)))
 
-    vocab.save(args['VOCAB_FILE'])
-    print('vocabulary saved to %s' % args['VOCAB_FILE'])
+    # vocab.save(args['VOCAB_FILE'])
+    # print('vocabulary saved to %s' % args['VOCAB_FILE'])
