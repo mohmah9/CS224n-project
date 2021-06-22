@@ -186,7 +186,7 @@ class Vocab(object):
         @param file_path (str): file path to vocab file
         """
         with open(file_path, 'w') as f:
-            json.dump(dict(src_word2id=self.src.word2id), f, indent=2)
+            json.dump(dict(src_word2id=self.src.word2id), f, indent=2,ensure_ascii=False)
 
     @staticmethod
     def load(file_path):
@@ -231,35 +231,35 @@ def test_train_spliter():
             f2.writelines(x_test)
 
 if __name__ == '__main__':
-    args = docopt(__doc__)
-    vocab_size = [20000,15000,10000,5000]
+    # args = docopt(__doc__)
+    vocab_size = [2000,3500,5000,6121]
     test_train_spliter()
     for vs in vocab_size:
         for i in range(1,6):
-            if not os.path.exists("./datasets/model-"+str(vocab_size)+"-"+str(i)):
-                os.mkdir("./datasets/model-"+str(vocab_size)+"-"+str(i))
+            if not os.path.exists("./datasets/model-"+str(vs)+"-"+str(i)):
+                os.mkdir("./datasets/model-"+str(vs)+"-"+str(i))
             
             x_train_path = "./datasets/text_train_"+str(i)+".txt"
             x_test_path = "./datasets/text_test_"+str(i)+".txt"
-            sents = get_vocab_list(x_train_path, source="./datasets/model-"+str(vocab_size)+"-"+str(i)+"/"+"model-"+str(vocab_size)+"-"+str(i), vocab_size=vs)
+            sents = get_vocab_list(x_train_path, source="./datasets/model-"+str(vs)+"-"+str(i)+"/"+"model-"+str(vs)+"-"+str(i), vocab_size=vs)
             vocab = Vocab.build(sents)
-            vocab.save("./datasets/model-"+str(vocab_size)+"-"+str(i)+"/")
+            vocab.save("./datasets/model-"+str(vs)+"-"+str(i)+"/vocab_file.json")
             test_words=[]
             with open("./datasets/text_test_"+str(i)+".txt",'r', encoding="utf-8") as f2:
                 for data in f2:
                     for wd in data.split(" "):
-                        test_words.append("_"+wd)
+                        test_words.append(wd)
+            
             test_tokens=np.array(vocab.src.words2indices(test_words))
             unk_count = np.count_nonzero(test_tokens==3)
             with open("../../reports/tokenization.txt",'a') as f1:
-                f1.write("With vocab size: %d  and seed: %d  and test token count of: %d  UNKNOWN precentage is: %d",vs,i,test_tokens.shape[0],unk_count/test_tokens.shape[0])
-                f1.write("/n")
+                f1.write("With vocab size: "+str(vs)+"  and seed: "+str(i)+"  and test token count of: "+str(test_tokens.shape[0])+"  UNKNOWN precentage is: " +str(unk_count/test_tokens.shape[0]))
+                f1.write("\n")
     
-    # vocab_size = 15000
-    # sents = get_vocab_list(x_train_path, source="./datasets/model-"+str(vocab_size)+"-"+str(i)+"/"+"model-"+str(vocab_size)+"-"+str(i), vocab_size=vs)
-    # vocab = Vocab.build(sents)
-    # final_vocab_file = 'models/tokenization/vocab_file_{}.json'.format(type_tokens)
-    # vocab.save(final_vocab_file)
+    vocab_size = 6121
+    sents = get_vocab_list("../../data/CLEAN/CLEAN_UTF8_all.txt", source="../../model/tokenization/model-"+str(vocab_size), vocab_size=vocab_size)
+    vocab = Vocab.build(sents)
+    vocab.save("../../model/tokenization/vocab-file-"+str(vocab_size)+".json")
     
     # print('read in source sentences: %s' % args['--train-src'])
     # print('read in target sentences: %s' % args['--train-tgt'])
